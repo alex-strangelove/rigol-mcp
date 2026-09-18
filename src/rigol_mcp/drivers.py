@@ -223,11 +223,33 @@ class DHODriver(ScopeDriver):
         scope.write(f":MEASure:STATistic:ITEM {','.join((item, *sources))}")
 
 
+class MHO900Driver(DHODriver):
+    """Rigol MHO900 series; verified on MHO984 firmware 00.01.00 over LAN.
+
+    Shares DHO's PNG query, auto-setup, 1000-point NORM range, bare ASCII CSV,
+    cursor positions in seconds, and statistical measurement registration.
+    See the MHO900 Programming Guide, sections 3.2, 3.8, 3.9, 3.17, and 3.28.
+    Keep a separate identity so other MHO families are not assumed compatible.
+    """
+
+    name = "MHO900"
+
+    @classmethod
+    def matches(cls, idn: str) -> bool:
+        fields = [field.strip().upper() for field in idn.split(",")]
+        return (
+            len(fields) >= 2
+            and fields[0] == "RIGOL TECHNOLOGIES"
+            and fields[1] in {"MHO934", "MHO954", "MHO984"}
+        )
+
+
 # Registry: checked in order, first match wins. An identity matched by no driver is an
 # error (see driver_for) — we do not guess a dialect for an unknown instrument.
 DS1000Z = DS1000ZDriver()
 DHO = DHODriver()
-_DRIVERS: tuple[ScopeDriver, ...] = (DHO, DS1000Z)
+MHO900 = MHO900Driver()
+_DRIVERS: tuple[ScopeDriver, ...] = (MHO900, DHO, DS1000Z)
 
 # Union of every family's two-source items — used to reject two-source items passed to the
 # single-source measure(), and to advertise the full enum in the tool schema.

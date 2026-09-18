@@ -1,4 +1,4 @@
-"""Rigol DS1000Z MCP server."""
+"""MCP server for Rigol DS1000Z, DHO, and MHO900 oscilloscopes."""
 
 import base64
 import json
@@ -121,7 +121,7 @@ async def list_tools() -> list[types.Tool]:
                 "Identify the instrument and report connection details. "
                 "Always returns the connection block (transport, RIGOL_USB/RIGOL_IP env "
                 "vars, backend hint, resource string, session state, and the detected "
-                "dialect driver — DS1000Z, DHO, …) followed by the scope's *IDN? string. "
+                "dialect driver — DS1000Z, DHO, MHO900) followed by the scope's *IDN? string. "
                 "If the *IDN? query fails, the connection block is still returned with "
                 "the error — use it to spot LAN-vs-USB misconfig or an unreachable IP "
                 "before assuming the scope itself is the problem. "
@@ -170,10 +170,9 @@ async def list_tools() -> list[types.Tool]:
             description=(
                 "Set the horizontal timebase. "
                 "scale_s_div: seconds per division (e.g. 0.001 for 1 ms/div). "
-                "offset_s: shifts the display window; time_start = offset_s − 6×scale_s_div, time_end = offset_s + 6×scale_s_div. "
-                "Trigger (t=0) is always a zero crossing when using edge trigger. "
-                "To align the right edge to a zero crossing at time T: set offset_s = T − 6×scale_s_div. "
-                "To put the trigger at the left edge of the screen: set offset_s = +6×scale_s_div. "
+                "offset_s shifts the display window. Its width depends on the scope family; "
+                "use get_waveform with raw_data=true to read the actual time_start_s/time_end_s. "
+                "To align the right edge with time T, add T − time_end_s to the current offset_s. "
                 "Parameter names match get_scope_state output for easy round-tripping. "
                 "Returns the resulting timebase configuration. "
                 "Do not call concurrently with any other rigol tool."
@@ -214,7 +213,7 @@ async def list_tools() -> list[types.Tool]:
                 "Preferred over screenshot for reading values — numeric results are "
                 "cheaper and easier to analyse than an image. "
                 "For stable readings: on DS1000Z, stop acquisition first. "
-                "On DHO, keep acquisition running — the DHO measurement engine only populates "
+                "On DHO and MHO900, keep acquisition running — the measurement engine populates "
                 "item values from live acquisitions; some items (VMAX/VMIN/VTOP/FREQUENCY/…) "
                 "return 9.9E37 if first queried on a stopped scope. "
                 "channel: CHAN1–CHAN4. "
@@ -255,12 +254,12 @@ async def list_tools() -> list[types.Tool]:
                 "source1 is the reference channel, source2 is the measured channel. "
                 "DS1000Z items: RDELAY (rising-edge delay, seconds), FDELAY (falling-edge delay, seconds), "
                 "RPHASE (rising-edge phase, degrees), FPHASE (falling-edge phase, degrees). "
-                "DHO series exposes a 4-way matrix: RRDELAY/RFDELAY/FRDELAY/FFDELAY and "
+                "DHO and MHO900 expose a 4-way matrix: RRDELAY/RFDELAY/FRDELAY/FFDELAY and "
                 "RRPHASE/RFPHASE/FRPHASE/FFPHASE (first letter = source1 edge, second = source2 edge). "
-                "On DHO the DS1000Z names are auto-mapped to their homogeneous equivalents "
+                "On DHO and MHO900 the DS1000Z names are auto-mapped to their homogeneous equivalents "
                 "(RDELAY→RRDELAY, FDELAY→FFDELAY, RPHASE→RRPHASE, FPHASE→FFPHASE). "
                 "For stable readings: on DS1000Z, stop acquisition first. "
-                "On DHO, keep acquisition running (see `measure` for details). "
+                "On DHO and MHO900, keep acquisition running (see `measure` for details). "
                 "A 9.9E37 result is the scope's invalid/overflow sentinel and comes back annotated; "
                 "any source channel whose display is OFF is auto-enabled first (noted in the result). "
                 "Do not call concurrently with any other rigol tool."
@@ -294,7 +293,7 @@ async def list_tools() -> list[types.Tool]:
                 "Set raw_data=true to get the full time/voltage JSON arrays instead. "
                 "If the channel's display is OFF it is auto-enabled first (flagged in the warnings). "
                 "After reading, act on any warnings — if FREQUENCY would be 9.9E37 widen the timebase; "
-                "if edges are not near the DC mean, adjust offset so right edge = N×(period/2) − 6×scale. "
+                "use the returned time range when adjusting offset to align edges. "
                 "Do not call concurrently with any other rigol tool."
             ),
             inputSchema={
