@@ -7,6 +7,7 @@ import pyvisa
 import pytest
 
 import rigol_mcp.server as srv
+from tests.conftest import FakeScope
 
 
 @pytest.fixture(autouse=True)
@@ -29,6 +30,17 @@ def _tmo():
 
 async def test_call_returns_result():
     assert await srv._call(lambda scope: f"ok:{scope}") == "ok:FAKE_SCOPE"
+
+
+async def test_measure_routes_ac_rms_to_mho900(monkeypatch):
+    scope = FakeScope(responses={
+        "*IDN?": "RIGOL TECHNOLOGIES,MHO984,SN,00.01.00",
+        ":CHAN1:DISP?": "1", ":MEASure:ITEM? ACRMS,CHAN1": "1.5382E+00",
+    })
+    monkeypatch.setattr(srv, "get_scope", lambda: scope)
+    result = await srv.call_tool("measure", {"channel": "CHAN1", "item": "ACRMS"})
+    assert result[0].text == "ACRMS on CHAN1: 1.5382E+00"
+    assert scope.written == [":MEASure:STATistic:ITEM ACRMS,CHAN1"]
 
 
 async def test_call_retries_then_succeeds():

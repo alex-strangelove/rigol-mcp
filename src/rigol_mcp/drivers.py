@@ -53,6 +53,8 @@ class ScopeDriver:
     """
 
     name: str = "generic"
+    # Native AC RMS (DC removed) must be verified for each instrument family.
+    supports_ac_rms: bool = False
     # Two-source (delay/phase) item names this family accepts, and aliases mapping the
     # canonical DS1000Z names onto family-specific ones (e.g. RDELAY -> RRDELAY on DHO).
     two_source_items: frozenset[str] = frozenset()
@@ -233,6 +235,7 @@ class MHO900Driver(DHODriver):
     """
 
     name = "MHO900"
+    supports_ac_rms = True
 
     @classmethod
     def matches(cls, idn: str) -> bool:

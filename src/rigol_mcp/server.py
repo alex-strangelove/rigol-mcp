@@ -221,7 +221,10 @@ async def list_tools() -> list[types.Tool]:
                 "VTOP (pulse top flat level, histogram-derived — not the same as VMAX), "
                 "VBASE (pulse base flat level — not the same as VMIN), "
                 "VAMP (=VTOP−VBASE — not the same as VPP=VMAX−VMIN), "
-                "VAVG, VRMS (RMS over screen window), PVRMS (RMS over one period), "
+                "VAVG, VRMS (total RMS including DC), PVRMS (RMS over one period), "
+                "ACRMS (MHO900 only: native RMS with DC removed, in volts). "
+                "ACRMS includes all AC content, including periodic signals and ripple; "
+                "for noise-only RMS exclude the intended signal and specify measurement bandwidth. "
                 "VUPPER/VMID/VLOWER (timing thresholds at 90%/50%/10% of VAMP by default), "
                 "VARIANCE (statistical variance of voltage samples), "
                 "FREQUENCY, PERIOD, PWIDTH, NWIDTH, PDUTY, NDUTY, "
@@ -242,7 +245,7 @@ async def list_tools() -> list[types.Tool]:
                 "type": "object",
                 "properties": {
                     "channel": {"type": "string", "enum": ["CHAN1", "CHAN2", "CHAN3", "CHAN4"]},
-                    "item":    {"type": "string", "description": "Measurement item (e.g. FREQUENCY, VPP, VRMS)"},
+                    "item":    {"type": "string", "description": "Measurement item (e.g. FREQUENCY, VPP, VRMS, ACRMS [MHO900])"},
                 },
                 "required": ["channel", "item"],
             },

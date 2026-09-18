@@ -218,9 +218,21 @@ For **USB**, replace the `RIGOL_IP` entry in `env` with `"RIGOL_USB": "1"` (see 
 
 | Tool | Description |
 |---|---|
-| `measure` | Query any single-channel measurement: VMAX, VMIN, VPP, VTOP, VBASE, VAMP, VAVG, VRMS, PVRMS, VUPPER, VMID, VLOWER, VARIANCE, FREQUENCY, PERIOD, PWIDTH, NWIDTH, PDUTY, NDUTY, RTIME, FTIME, OVERSHOOT, PRESHOOT, PSLEWRATE, NSLEWRATE, TVMAX, TVMIN, MAREA, MPAREA, PPULSES, NPULSES, PEDGES, NEDGES |
+| `measure` | Query any single-channel measurement: VMAX, VMIN, VPP, VTOP, VBASE, VAMP, VAVG, VRMS, PVRMS, ACRMS (MHO900 only), VUPPER, VMID, VLOWER, VARIANCE, FREQUENCY, PERIOD, PWIDTH, NWIDTH, PDUTY, NDUTY, RTIME, FTIME, OVERSHOOT, PRESHOOT, PSLEWRATE, NSLEWRATE, TVMAX, TVMIN, MAREA, MPAREA, PPULSES, NPULSES, PEDGES, NEDGES |
 | `measure_between` | Query delay or phase between two channels. DS1000Z: RDELAY, FDELAY, RPHASE, FPHASE. DHO/MHO900: RRDELAY/RFDELAY/FRDELAY/FFDELAY, RRPHASE/RFPHASE/FRPHASE/FFPHASE (DS1000Z names auto-map to the homogeneous-edge equivalents) |
 | `get_waveform` | Download and analyse waveform data (NORM screen buffer: up to 1200 pts on DS1000Z, 1000 on DHO/MHO900); returns text analysis by default, raw time/voltage arrays with `raw_data=true` |
+
+### AC RMS and noise measurements (MHO900)
+
+Call `measure` with `{"channel": "CHAN1", "item": "ACRMS"}` for the scope's
+native AC RMS value in volts, with the DC component removed. Keep acquisition
+running. `VRMS` measures total RMS including DC; `PVRMS` measures RMS over one period.
+
+AC RMS includes periodic signals and ripple as well as noise. For noise-only RMS,
+exclude the intended signal and specify the measurement bandwidth, probe, and
+vertical scale. The RMS of the calibration square wave is not its noise floor.
+Native `ACRMS` is enabled for MHO900; other drivers reject it before changing
+channel settings.
 
 ### Cursors
 

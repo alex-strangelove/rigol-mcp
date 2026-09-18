@@ -76,6 +76,35 @@ def test_measurement_registers_statistic_without_resetting_item():
     assert s.written == [":MEASure:STATistic:ITEM FREQUENCY,CHAN1"]
 
 
+@pytest.mark.parametrize("item", ["ACRMS", "acrms", "ACRMs"])
+def test_ac_rms_uses_native_measurement_not_total_rms(item):
+    s = FakeScope(responses={
+        "*IDN?": IDN, ":CHAN1:DISP?": "1",
+        ":MEASure:ITEM? ACRMS,CHAN1": "1.5382E+00",
+        ":MEASure:ITEM? VRMS,CHAN1": "2.1930E+00",
+    })
+    assert float(sc.measure(s, "chan1", item)) == 1.5382
+    assert s.written == [":MEASure:STATistic:ITEM ACRMS,CHAN1"]
+
+
+def test_ac_rms_preserves_invalid_measurement_annotation():
+    s = FakeScope(responses={
+        "*IDN?": IDN, ":CHAN1:DISP?": "1", ":MEASure:ITEM? ACRMS,CHAN1": "9.9E37",
+    })
+    assert "invalid/overflow sentinel" in sc.measure(s, "CHAN1", "ACRMS")
+
+
+@pytest.mark.parametrize("idn,family", [
+    (FakeScope.DEFAULT_IDN, "DS1000Z"),
+    ("RIGOL TECHNOLOGIES,DHO924S,SN,1.0", "DHO"),
+])
+def test_ac_rms_rejected_before_enabling_channel_on_other_drivers(idn, family):
+    s = FakeScope(responses={"*IDN?": idn, ":CHAN1:DISP?": "0"})
+    with pytest.raises(ValueError, match=f"ACRMS is not supported by the {family} driver"):
+        sc.measure(s, "CHAN1", "ACRMS")
+    assert s.written == []
+
+
 @pytest.mark.parametrize("item,native", [
     ("RDELAY", "RRDELAY"), ("FDELAY", "FFDELAY"),
     ("RPHASE", "RRPHASE"), ("FPHASE", "FFPHASE"),

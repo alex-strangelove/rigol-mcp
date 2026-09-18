@@ -39,7 +39,7 @@ The SCPI error queue was checked after each operation.
 | `single`, `stop`, `run` | Commands accepted; acquisition resumed successfully |
 | `autoscale` | Auto-setup completed; CH1 frequency remained 1 kHz |
 
-All 33 single-source items exposed by `measure` were also queried through
+The 33 original single-source items exposed by `measure` were also queried through
 the scope helpers while acquisition was running, with finite readings and
 no SCPI errors. Keep acquisition running for built-in measurements; stop or
 single-trigger before downloading a consistent waveform.
@@ -53,6 +53,19 @@ that requires a second connected signal.
 The system setup was saved before control/auto-setup tests and restored afterward.
 Channel settings, timebase, and trigger level were read back to verify restoration.
 
+## AC RMS validation
+
+The `measure` tool also exposes native `ACRMS` on MHO900, using
+`:MEASure:STATistic:ITEM ACRMS,CHAN1` and `:MEASure:ITEM? ACRMS,CHAN1`.
+The configured stdio MCP server was tested with `ACRMS`, `acrms`, and `ACRMs`;
+all returned finite readings without SCPI errors. The MCP reading matched
+a direct native query and `sqrt(VRMS² − VAVG²)` within 2% across successive
+live acquisitions. This checks the measurement path, not instrument accuracy.
+
+On the connected square wave, AC RMS was approximately 1.54 V, compared with
+approximately 2.19 V total RMS and 1.56 V mean. AC RMS removes DC but includes
+the square wave itself; these readings are not a noise-floor measurement.
+
 ## Regression tests
 
 ```bash
@@ -62,7 +75,9 @@ uv run --no-sync pytest
 
 `tests/test_mho900.py` covers model detection and rejection, driver caching,
 bare CSV waveform parsing and time coordinates, PNG framing, measurement
-registration and aliases, cursor units, and auto-setup completion handling.
+registration and aliases, native AC RMS and rejection on other drivers, cursor
+units, and auto-setup completion handling. `tests/test_server.py` also verifies
+that the MCP measurement handler returns native AC RMS values.
 These tests use fake instruments and do not require hardware.
 
 For a live check, configure `RIGOL_IP`, start the MCP server, then call `idn`,

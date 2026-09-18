@@ -437,10 +437,10 @@ def connection_info() -> dict:
     return info
 
 
-# All measurement items supported by DS1000Z :MEASure:ITEM
+# Single-source measurement names; family-specific capabilities are checked below.
 MEASURE_ITEMS = frozenset({
     # Voltage
-    "VMAX", "VMIN", "VPP", "VTOP", "VBASE", "VAMP", "VAVG", "VRMS",
+    "VMAX", "VMIN", "VPP", "VTOP", "VBASE", "VAMP", "VAVG", "VRMS", "ACRMS",
     "OVERSHOOT", "PRESHOOT", "MAREA", "MPAREA",
     "VUPPER", "VMID", "VLOWER", "VARIANCE", "PVRMS",
     # Time (single-source)
@@ -463,8 +463,11 @@ def measure(scope: pyvisa.resources.Resource, channel: str, item: str) -> str:
         raise ValueError(f"'{item}' requires two sources — use measure_between()")
     if it not in MEASURE_ITEMS:
         raise ValueError(f"Unknown item '{item}'. Valid: {sorted(MEASURE_ITEMS)}")
+    driver = get_driver(scope)
+    if it == "ACRMS" and not driver.supports_ac_rms:
+        raise ValueError(f"ACRMS is not supported by the {driver.name} driver")
     note = ensure_channel_displayed(scope, ch)
-    get_driver(scope).register_measure_item(scope, it, ch)
+    driver.register_measure_item(scope, it, ch)
     value = annotate_measurement_value(scope.query(f":MEASure:ITEM? {it},{ch}").strip())
     if note:
         value += f"\n⚠ {note}"
